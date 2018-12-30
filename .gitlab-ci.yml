@@ -1,0 +1,27 @@
+variables:
+  SERVER_PORT: ${SERVER_PORT}
+  ARTIFACTS_PATH: ${ARTIFACTS_PATH}
+  SERVER_HOST_PATH: ${SERVER_HOST_PATH}
+
+build site:
+  image: node:6
+  stage: build
+  script:
+    - npm install --progress=false
+    - npm run prod
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - $ARTIFACTS_PATH
+
+deploy:
+  image: alpine:3.4
+  stage: deploy
+  script:
+    - apk add --no-cache rsync openssh
+    - mkdir -p ~/.ssh
+    - echo "$PRIVATE_KEY" >> ~/.ssh/id_dsa
+    - chmod 600 ~/.ssh/id_dsa
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - rsync -e "ssh -p ${SERVER_PORT}" -rav --delete $ARTIFACTS_PATH $SERVER_HOST_PATH
+
